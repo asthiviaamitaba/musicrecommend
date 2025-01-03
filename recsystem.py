@@ -38,7 +38,7 @@ def get_recommendations(track_name, df, n_recommendations=5):
         # Get similar tracks based on the combined similarity score
         sim_scores = list(enumerate(combined_similarities[track_idx]))
         sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-        sim_scores = sim_scores[1:n_recommendations+1]  # Skip the first one (itself)
+        sim_scores = sim_scores[1:]  # Skip the first one (itself)
 
         # Get recommendations
         track_indices = [i[0] for i in sim_scores]
@@ -57,14 +57,30 @@ st.markdown("Cari rekomendasi lagu berdasarkan nama lagu favoritmu!")
 # Input song from user
 song_input = st.text_input("Masukkan nama lagu:", "").strip()
 
+# Initialize session state for recommendation display
+if "num_recommendations" not in st.session_state:
+    st.session_state.num_recommendations = 5
+    st.session_state.recommendations = None
+
 # Button to get recommendations
 if st.button("Cari Rekomendasi"):
     if song_input:
         recommendations = get_recommendations(song_input, df)
         if recommendations is not None:
-            st.subheader("Lagu Rekomendasi:")
-            st.dataframe(recommendations)
+            st.session_state.recommendations = recommendations
+            st.session_state.num_recommendations = 5  # Reset to initial batch size
         else:
             st.warning(f"Lagu '{song_input}' tidak ditemukan di dataset.")
     else:
         st.warning("Masukkan nama lagu terlebih dahulu.")
+
+# Display recommendations in batches
+if st.session_state.recommendations is not None:
+    st.subheader("Lagu Rekomendasi:")
+    recommendations_to_display = st.session_state.recommendations.head(st.session_state.num_recommendations)
+    st.dataframe(recommendations_to_display)
+
+    # Show more recommendations button
+    if st.session_state.num_recommendations < len(st.session_state.recommendations):
+        if st.button("Tampilkan Lebih Banyak Rekomendasi"):
+            st.session_state.num_recommendations += 5
